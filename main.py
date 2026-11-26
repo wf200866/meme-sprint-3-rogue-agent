@@ -331,6 +331,13 @@ def build():
         else:
             bh = bubble(c, 52, y, lines, BIG, (24, 40, 30), GREEN, icon=True, border=(38, 92, 52))
         y += bh + GAP
+
+    # footer: a real chat never quite stops
+    c.rect(52, 936, W - 52, 937, (46, 54, 64))
+    c.circle(66, 964, 5, GREEN_DOT)
+    c.text(80, 952, "agent is typing", 3, DIM)
+    right = "disk: 1.0 GB free"
+    c.text(W - 52 - c.text_width(right, 3), 952, right, 3, DIM)
     return c
 
 
