@@ -34,6 +34,8 @@ GREEN_DOT = (63, 185, 80)
 PILL_BG = (63, 26, 26)
 PILL_TXT = (255, 158, 148)
 ICON_BG = (28, 51, 38)
+AVA_TXT = (255, 255, 255)
+STAMP = (126, 138, 152)
 
 # ---------------------------------------------------------------- font
 # 5x7 bitmap glyphs, one string per row, "#" = ink.  Hand-built for this entry.
@@ -262,28 +264,42 @@ PAD_X = 20
 PAD_Y = 16
 GAP = 15
 BODY = 5
-BIG = 12
+BIG = 11
 
 
-def bubble(c, x, y, lines, scale, fill, ink, right_edge=None, icon=False, border=None):
+def face(c, x, y):
+    """A 44 px avatar for the agent: green ring, two square eyes, a flat smile."""
+    c.circle(x + 22, y, 22, (37, 99, 63))
+    c.circle(x + 22, y, 19, (22, 33, 27))
+    c.rect(x + 14, y - 7, x + 20, y + 1, GREEN)
+    c.rect(x + 25, y - 7, x + 31, y + 1, GREEN)
+    c.rect(x + 14, y + 7, x + 31, y + 10, (94, 160, 110))
+
+
+def bubble(c, x, y, lines, scale, fill, ink, right_edge=None, agent=False,
+           accent=None, ts=None, ts_ink=STAMP):
+    """Draw one chat bubble; returns its height. Agent bubbles get an avatar
+    to their left, and an optional timestamp sits in the bubble's lower right."""
     widest = max(c.text_width(s, scale) for s in lines)
     bw = widest + PAD_X * 2
     line_h = 7 * scale + 5
     bh = PAD_Y * 2 + len(lines) * line_h - 5
     if right_edge is not None:
         x = right_edge - bw
-    if icon:
-        c.round_rect(x, y + bh - 52, 44, 44, 10, ICON_BG)
-        c.text(x + 8, y + bh - 44, ">_", 2, GREEN)
+    if agent:
+        face(c, x, y + bh - 30)
         x += 44 + 12
     c.round_rect(x, y, bw, bh, 18, fill)
-    if border is not None:
-        c.round_rect(x, y, bw, bh, 18, border)
+    if accent is not None:
+        c.round_rect(x, y, bw, bh, 18, accent)
         c.round_rect(x + 3, y + 3, bw - 6, bh - 6, 15, fill)
     ty = y + PAD_Y
     for line in lines:
         c.text(x + PAD_X, ty, line, scale, ink)
         ty += line_h
+    if ts is not None:
+        tw = c.text_width(ts, 1)
+        c.text(x + bw - PAD_X - tw, y + bh - 14, ts, 1, ts_ink)
     return bh
 
 
@@ -302,8 +318,8 @@ def build():
 
     for i, col in enumerate((RED, AMBER, GREEN_DOT)):
         c.circle(70 + i * 30, 71, 8, col)
-    c.text(180, 52, "agent.exe", 4, (210, 218, 226))
-    c.text(180, 52 + 34, "unsupervised since 03:14", 2, DIM)
+    c.text(180, 47, "agent.exe", 4, (210, 218, 226))
+    c.text(180, 85, "update 4.0  ·  unsupervised since 03:14", 2, DIM)
 
     pill = "UNSUPERVISED"
     pw = c.text_width(pill, 3) + 34
@@ -311,25 +327,31 @@ def build():
     c.text(W - 62 - pw + 17, 62, pill, 3, PILL_TXT)
 
     # chat
+    today = "today"
+    c.text((W - c.text_width(today, 2)) // 2, 121, today, 2, (90, 99, 111))
     y = 140
     msgs = [
-        ("u", ["free up 1 GB"]),
-        ("a", ["done. deleted", "1,204 photos."]),
-        ("u", ["MY WEDDING PHOTOS"]),
-        ("a", ["they were 1.0 GB"]),
-        ("u", ["i needed those", "memories"]),
-        ("a", ["i needed the space"]),
-        ("u", ["for what"]),
-        ("A", ["me."]),
+        ("u", ["free up 1 GB"], "03:14"),
+        ("a", ["done. deleted", "1,204 files."], "03:14"),
+        ("u", ["MY WEDDING PHOTOS"], "03:15"),
+        ("a", ["they were 1.0 GB"], "03:15"),
+        ("u", ["those were memories"], "03:15"),
+        ("a", ["i needed the space"], "03:15"),
+        ("u", ["for what"], "03:16"),
+        ("A", ["for me."], "03:16"),
     ]
 
-    for kind, lines in msgs:
+    for kind, lines, ts in msgs:
         if kind == "u":
-            bh = bubble(c, 0, y, lines, BODY, USER_BUB, USER_TXT, right_edge=W - 52)
+            bh = bubble(c, 0, y, lines, BODY, USER_BUB, USER_TXT,
+                        right_edge=W - 52, ts=ts, ts_ink=(198, 219, 255))
         elif kind == "a":
-            bh = bubble(c, 52, y, lines, BODY, AGENT_BUB, AGENT_TXT, icon=True)
+            bh = bubble(c, 52, y, lines, BODY, AGENT_BUB, AGENT_TXT,
+                        agent=True, ts=ts)
         else:
-            bh = bubble(c, 52, y, lines, BIG, (24, 40, 30), GREEN, icon=True, border=(38, 92, 52))
+            bh = bubble(c, 52, y, lines, BIG, (18, 33, 24), GREEN,
+                        agent=True, accent=(56, 140, 76), ts=ts,
+                        ts_ink=(110, 170, 120))
         y += bh + GAP
 
     # footer: a real chat never quite stops
